@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MockKeys — Custom API Mocks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #505050;
+      --border-active: #838383;
+      --text: #e8e8e8;
+      --muted: #939393;
+      --accent: #00e5a0;
+      --accent-dim: rgba(0, 243, 170, 0.278);
+      --danger: #ff4d4d;
+      --warning: #ffb830;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+      --radius: 4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .base-url-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .base-url-tag b { color: var(--text); }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      height: calc(100vh - 57px);
+    }
+
+    /* ── Left Panel: Form ── */
+    .panel-form {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      padding: 20px 24px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    .row { display: grid; grid-template-columns: 110px 1fr 80px; gap: 8px; }
+
+    input, select, textarea {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    select option { background: #1a1a1a; }
+
+    textarea {
+      resize: vertical;
+      min-height: 180px;
+      line-height: 1.5;
+    }
+
+    .slug-preview {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .slug-preview .base { color: var(--muted); }
+    .slug-preview .custom { color: var(--accent); }
+
+    .btn {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      padding: 5px 10px;
+    }
+
+    .btn-ghost:hover { color: #60a5fa; border-color: #60a5fa; }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid transparent;
+      font-size: 11px;
+      padding: 5px 10px;
+    }
+
+    .btn-danger:hover { border-color: var(--danger); }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .form-actions .btn-primary { flex: 1; }
+
+    .error-msg {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--danger);
+      padding: 8px 12px;
+      background: rgba(255,77,77,0.08);
+      border: 1px solid rgba(255,77,77,0.2);
+      border-radius: var(--radius);
+    }
+
+    /* ── Right Panel: Endpoint List ── */
+    .panel-list {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .list-header {
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .list-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .count-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .endpoint-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 32px; opacity: 0.3; }
+    .empty-state p { font-family: var(--mono); font-size: 13px; }
+
+    /* ── Endpoint Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .card:hover { border-color: var(--border-active); }
+    .card.editing { border-color: var(--accent); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    .card-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .method-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .GET    { background: rgba(0,229,160,0.15); color: var(--accent); }
+    .POST   { background: rgba(96,165,250,0.15); color: #60a5fa; }
+    .PUT    { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .PATCH  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .DELETE { background: rgba(255,77,77,0.15); color: var(--danger); }
+
+    .card-path {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-path .prefix { color: var(--muted); }
+
+    .card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    .card-meta {
+      padding: 0 16px 12px;
+      display: flex;
+      gap: 16px;
+    }
+
+    .meta-item {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta-item .val { color: var(--text); }
+
+    .status-200 { color: var(--accent); }
+    .status-4xx { color: var(--warning); }
+    .status-5xx { color: var(--danger); }
+
+    /* Collapsible response preview */
+    .card-preview {
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+
+    .card-preview.open { display: block; }
+
+    .card-preview pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #aaa;
+      padding: 14px 16px;
+      overflow-x: auto;
+      max-height: 200px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .url-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .url-text {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .url-text .highlight { color: var(--accent); }
+
+    .copy-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .copy-btn.copied { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #000;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 999;
+    }
+
+    #toast.show { opacity: 1; }
+    #toast.error { background: var(--danger); color: #fff; }
+
+    /* ── Method select colors ── */
+    select#method { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Mock<span>Keys</span></div>
+  <div class="base-url-tag">base: <b id="baseUrlDisplay">loading…</b></div>
+</header>
+
+<div class="layout">
+
+  <!-- Left: Create / Edit Form -->
+  <aside class="panel-form">
+    <div class="panel-title" id="formLabel">New Endpoint</div>
+
+    <div class="form-body">
+      <div class="field">
+        <label>Method & Slug</label>
+        <div class="row">
+          <select id="method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+          <input id="slug" type="text" placeholder="users/profile" autocomplete="off" spellcheck="false" />
+          <input id="statusCode" type="number" value="200" min="100" max="599" placeholder="200" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Endpoint Preview</label>
+        <div class="slug-preview" id="slugPreview">
+          <span class="base">http://…/mock/</span><span class="custom">—</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Response Body (JSON)</label>
+        <textarea id="responseBody" placeholder='{"message": "hello world", "status": "ok"}'></textarea>
+      </div>
+
+      <div id="formError" class="error-msg" style="display:none"></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">+ Create Endpoint</button>
+      <button class="btn btn-ghost" id="cancelEditBtn" style="display:none" onclick="cancelEdit()">Cancel</button>
+    </div>
+  </aside>
+
+  <!-- Right: Endpoint List -->
+  <main class="panel-list">
+    <div class="list-header">
+      <div class="list-header-left">
+        <div class="panel-title" style="padding:0;border:none">Endpoints</div>
+        <div class="count-badge" id="countBadge">0</div>
+      </div>
+    </div>
+
+    <div class="endpoint-list" id="endpointList">
+      <div class="empty-state">
+        <div class="icon">⬡</div>
+        <p>No endpoints yet. Create one →</p>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const BASE = window.location.origin;
+  let endpoints = [];
+  let editingId = null;
+
+  document.getElementById('baseUrlDisplay').textContent = BASE + '/mock/…';
+
+  // Slug preview
+  document.getElementById('slug').addEventListener('input', updatePreview);
+  function updatePreview() {
+    const slug = document.getElementById('slug').value.trim() || '—';
+    document.getElementById('slugPreview').innerHTML =
+      `<span class="base">${BASE}/mock/</span><span class="custom">${slug}</span>`;
+  }
+  updatePreview();
+
+  // ── API ──────────────────────────────────────────────────────────────────────
+  async function fetchEndpoints() {
+    const res = await fetch('/api/endpoints');
+    endpoints = await res.json();
+    renderList();
+  }
+
+  async function submitForm() {
+    const slug = document.getElementById('slug').value.trim();
+    const method = document.getElementById('method').value;
+    const statusCode = parseInt(document.getElementById('statusCode').value) || 200;
+    const responseBody = document.getElementById('responseBody').value.trim();
+
+    clearError();
+
+    if (!slug) return showError('Slug is required.');
+    if (!responseBody) return showError('Response body is required.');
+
+    let parsed;
+    try { parsed = JSON.parse(responseBody); }
+    catch (e) { return showError('Invalid JSON: ' + e.message); }
+
+    const payload = { slug, method, statusCode, response: parsed };
+
+    try {
+      let res;
+      if (editingId) {
+        res = await fetch(`/api/endpoints/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch('/api/endpoints', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) return showError(data.error || 'Server error');
+
+      toast(editingId ? 'Endpoint updated' : 'Endpoint created');
+      cancelEdit();
+      fetchEndpoints();
+    } catch (e) {
+      showError('Request failed: ' + e.message);
+    }
+  }
+
+  async function deleteEndpoint(id) {
+    if (!confirm('Delete this endpoint?')) return;
+    await fetch(`/api/endpoints/${id}`, { method: 'DELETE' });
+    if (editingId === id) cancelEdit();
+    fetchEndpoints();
+    toast('Deleted', true);
+  }
+
+  // ── Edit ─────────────────────────────────────────────────────────────────────
+  function startEdit(ep) {
+    editingId = ep.id;
+    document.getElementById('slug').value = ep.slug;
+    document.getElementById('method').value = ep.method;
+    document.getElementById('statusCode').value = ep.statusCode;
+    document.getElementById('responseBody').value = JSON.stringify(ep.response, null, 2);
+    document.getElementById('submitBtn').textContent = '✓ Save Changes';
+    document.getElementById('cancelEditBtn').style.display = 'block';
+    document.getElementById('formLabel').textContent = 'Edit Endpoint';
+    updatePreview();
+    clearError();
+    renderList();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    document.getElementById('slug').value = '';
+    document.getElementById('method').value = 'GET';
+    document.getElementById('statusCode').value = '200';
+    document.getElementById('responseBody').value = '';
+    document.getElementById('submitBtn').textContent = '+ Create Endpoint';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    document.getElementById('formLabel').textContent = 'New Endpoint';
+    updatePreview();
+    clearError();
+    renderList();
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function renderList() {
+    const container = document.getElementById('endpointList');
+    document.getElementById('countBadge').textContent = endpoints.length;
+
+    if (!endpoints.length) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">⬡</div><p>No endpoints yet. Create one →</p></div>`;
+      return;
+    }
+
+    container.innerHTML = endpoints.map(ep => {
+      const statusClass = ep.statusCode >= 500 ? 'status-5xx' : ep.statusCode >= 400 ? 'status-4xx' : 'status-200';
+      const fullUrl = `${BASE}/mock/${ep.slug}`;
+      const previewId = 'prev-' + ep.id;
+      const isEditing = editingId === ep.id;
+
+      return `
+        <div class="card ${isEditing ? 'editing' : ''}" id="card-${ep.id}">
+          <div class="card-header">
+            <div class="card-left">
+              <span class="method-badge ${ep.method}">${ep.method}</span>
+              <span class="card-path"><span class="prefix">/mock/</span>${ep.slug}</span>
+            </div>
+            <div class="card-actions">
+              <button class="copy-btn" onclick="togglePreview('${previewId}', this)">JSON</button>
+              <button class="btn-ghost btn" onclick="startEdit(${JSON.stringify(ep).replace(/"/g, '&quot;')})">edit</button>
+              <button class="btn-danger btn" onclick="deleteEndpoint('${ep.id}')">del</button>
+            </div>
+          </div>
+          <div class="card-meta">
+            <div class="meta-item">status <span class="val ${statusClass}">${ep.statusCode}</span></div>
+            <div class="meta-item">hits <span class="val">${ep.hits || 0}</span></div>
+            <div class="meta-item">created <span class="val">${new Date(ep.createdAt).toLocaleDateString()}</span></div>
+          </div>
+          <div class="url-row">
+            <span class="url-text">${BASE}/mock/<span class="highlight">${ep.slug}</span></span>
+            <button class="copy-btn" onclick="copyUrl('${fullUrl}', this)">copy</button>
+          </div>
+          <div class="card-preview" id="${previewId}">
+            <pre>${syntaxHighlight(JSON.stringify(ep.response, null, 2))}</pre>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function togglePreview(id, btn) {
+    const el = document.getElementById(id);
+    const open = el.classList.toggle('open');
+    btn.textContent = open ? 'hide' : 'JSON';
+    btn.classList.toggle('copied', open);
+  }
+
+  function syntaxHighlight(json) {
+    return json
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+        let cls = 'number';
+        if (/^"/.test(match)) cls = /:$/.test(match) ? 'key' : 'string';
+        else if (/true|false/.test(match)) cls = 'boolean';
+        else if (/null/.test(match)) cls = 'null';
+        const colors = { key: '#60a5fa', string: '#86efac', number: '#fbbf24', boolean: '#c084fc', null: '#f87171' };
+        return `<span style="color:${colors[cls]}">${match}</span>`;
+      });
+  }
+
+  async function copyUrl(url, btn) {
+    await navigator.clipboard.writeText(url).catch(() => {});
+    btn.textContent = '✓ ok';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+  }
+
+  // ── Utils ────────────────────────────────────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('formError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function clearError() {
+    const el = document.getElementById('formError');
+    el.textContent = '';
+    el.style.display = 'none';
+  }
+
+  function toast(msg, isErr = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show' + (isErr ? ' error' : '');
+    setTimeout(() => el.className = '', 2200);
+  }
+
+  // Enter key on inputs
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitForm();
+  });
+
+  // Init
+  fetchEndpoints();
+  setInterval(fetchEndpoints, 5000); // auto-refresh for hit counts
+</script>
+</body>
+</html>

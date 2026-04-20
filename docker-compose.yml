@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  mockapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mockapi-server
+    ports:
+      - "${PORT:-3008}:3008"
+    volumes:
+      # Persist database files
+      - db-data:/app/db
+      # Optional: Mount public directory for hot-reload during development
+      # - ./public:/app/public
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  db-data:
+    driver: local
+    name: mockapi-db-data
