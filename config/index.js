@@ -6,7 +6,12 @@ const config = {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
     credentials: true
-  }
+  },
+  apiKey: process.env.API_KEY,
+  jwtSecret: process.env.JWT_SECRET,
+  username: process.env.USERNAME,
+  password: process.env.PASSWORD,
 };
+
 
 module.exports = config;

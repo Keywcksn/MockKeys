@@ -431,7 +431,10 @@
 
 <header>
   <div class="logo">Mock<span>Keys</span></div>
-  <div class="base-url-tag">base: <b id="baseUrlDisplay">loading…</b></div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="base-url-tag">base: <b id="baseUrlDisplay">loading…</b></div>
+    <button class="btn btn-ghost" onclick="logout()">Logout</button>
+  </div>
 </header>
 
 <div class="layout">
@@ -503,7 +506,32 @@
   let endpoints = [];
   let editingId = null;
 
+  // Check authentication
+  function getAuthHeaders() {
+    const token = localStorage.getItem('authToken');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
+
+  // Redirect to login if not authenticated
+  function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('authToken');
+    window.location.href = '/login.html';
+  }
+
   document.getElementById('baseUrlDisplay').textContent = BASE + '/mock/…';
+
+  // Check auth on load
+  checkAuth();
 
   // Slug preview
   document.getElementById('slug').addEventListener('input', updatePreview);
@@ -516,7 +544,16 @@
 
   // ── API ──────────────────────────────────────────────────────────────────────
   async function fetchEndpoints() {
-    const res = await fetch('/api/endpoints');
+    const res = await fetch('/api/endpoints', {
+      headers: getAuthHeaders()
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('authToken');
+      window.location.href = '/login.html';
+      return;
+    }
+
     endpoints = await res.json();
     renderList();
   }
@@ -543,13 +580,13 @@
       if (editingId) {
         res = await fetch(`/api/endpoints/${editingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload)
         });
       } else {
         res = await fetch('/api/endpoints', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload)
         });
       }
@@ -567,7 +604,10 @@
 
   async function deleteEndpoint(id) {
     if (!confirm('Delete this endpoint?')) return;
-    await fetch(`/api/endpoints/${id}`, { method: 'DELETE' });
+    await fetch(`/api/endpoints/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
     if (editingId === id) cancelEdit();
     fetchEndpoints();
     toast('Deleted', true);

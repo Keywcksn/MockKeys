@@ -16,6 +16,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3008
+      - DB_PATH=${DB_PATH}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - API_KEY=${API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - USERNAME=${LOGIN}
+      - PASSWORD=${PASSWORD}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
