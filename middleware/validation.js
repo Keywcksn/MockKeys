@@ -1,4 +1,4 @@
-const SLUG_REGEX = /^[a-z0-9\-_\/]+$/i;
+const SLUG_REGEX = /^[a-z0-9\-_\/\?\=\&]+$/i;
 
 function validateCreateEndpoint(req, res, next) {
   const { slug, method, response } = req.body;
@@ -9,7 +9,7 @@ function validateCreateEndpoint(req, res, next) {
 
   if (!SLUG_REGEX.test(slug)) {
     return res.status(400).json({
-      error: 'Slug can only contain letters, numbers, hyphens, underscores, and slashes'
+      error: 'Slug can only contain letters, numbers, hyphens, underscores, slashes, and query parameters (?, =, &)'
     });
   }
 
@@ -37,7 +37,7 @@ function validateUpdateEndpoint(req, res, next) {
   const { slug } = req.body;
   if (slug && !SLUG_REGEX.test(slug)) {
     return res.status(400).json({
-      error: 'Slug can only contain letters, numbers, hyphens, underscores, and slashes'
+      error: 'Slug can only contain letters, numbers, hyphens, underscores, slashes, and query parameters (?, =, &)'
     });
   }
 
