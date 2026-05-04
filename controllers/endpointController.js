@@ -102,7 +102,8 @@ function deleteEndpoint(req, res) {
 
 function handleMock(req, res) {
   // Strip /mock/ prefix and trailing slashes
-  const reqPath = req.path.replace(/^\/mock\//, '').replace(/\/$/, '');
+  // Use originalUrl to include query parameters
+  const reqPath = req.originalUrl.replace(/^\/mock\//, '').replace(/\/$/, '');
   const method = req.method.toUpperCase();
 
   const endpoint = endpointService.findEndpointBySlugAndMethod(reqPath, method);

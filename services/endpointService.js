@@ -30,6 +30,24 @@ function findEndpointBySlugAndMethod(slug, method) {
     stmt.free();
   }
 
+  // If not found, try with query parameters stripped
+  if (!endpoint && slug.includes('?')) {
+    const slugWithoutQuery = slug.split('?')[0];
+    stmt = db.prepare('SELECT * FROM endpoints WHERE slug = ? AND method = ?');
+    stmt.bind([slugWithoutQuery, method]);
+    endpoint = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+
+    // Also try with both query params and trailing slash stripped
+    if (!endpoint && slugWithoutQuery.endsWith('/')) {
+      const normalizedSlug = slugWithoutQuery.replace(/\/$/, '');
+      stmt = db.prepare('SELECT * FROM endpoints WHERE slug = ? AND method = ?');
+      stmt.bind([normalizedSlug, method]);
+      endpoint = stmt.step() ? stmt.getAsObject() : null;
+      stmt.free();
+    }
+  }
+
   return endpoint;
 }
 
