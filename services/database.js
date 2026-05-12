@@ -12,9 +12,6 @@ const TABLE_SCHEMA = `
     method TEXT NOT NULL,
     statusCode INTEGER DEFAULT 200,
     response TEXT NOT NULL,
-    reqBody TEXT,
-    successResponse TEXT,
-    failedResponse TEXT,
     createdAt TEXT NOT NULL,
     hits INTEGER DEFAULT 0
   )
