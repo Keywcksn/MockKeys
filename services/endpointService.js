@@ -7,6 +7,15 @@ function listEndpoints() {
   while (stmt.step()) {
     const row = stmt.getAsObject();
     row.response = JSON.parse(row.response);
+    if (row.reqBody) {
+      row.reqBody = JSON.parse(row.reqBody);
+    }
+    if (row.successResponse) {
+      row.successResponse = JSON.parse(row.successResponse);
+    }
+    if (row.failedResponse) {
+      row.failedResponse = JSON.parse(row.failedResponse);
+    }
     rows.push(row);
   }
   stmt.free();
@@ -48,6 +57,20 @@ function findEndpointBySlugAndMethod(slug, method) {
     }
   }
 
+  // Parse JSON fields if endpoint exists
+  if (endpoint) {
+    endpoint.response = JSON.parse(endpoint.response);
+    if (endpoint.reqBody) {
+      endpoint.reqBody = JSON.parse(endpoint.reqBody);
+    }
+    if (endpoint.successResponse) {
+      endpoint.successResponse = JSON.parse(endpoint.successResponse);
+    }
+    if (endpoint.failedResponse) {
+      endpoint.failedResponse = JSON.parse(endpoint.failedResponse);
+    }
+  }
+
   return endpoint;
 }
 
@@ -57,23 +80,34 @@ function findEndpointById(id) {
   stmt.bind([id]);
   const endpoint = stmt.step() ? stmt.getAsObject() : null;
   stmt.free();
+  if (endpoint) {
+    if (endpoint.reqBody) {
+      endpoint.reqBody = JSON.parse(endpoint.reqBody);
+    }
+    if (endpoint.successResponse) {
+      endpoint.successResponse = JSON.parse(endpoint.successResponse);
+    }
+    if (endpoint.failedResponse) {
+      endpoint.failedResponse = JSON.parse(endpoint.failedResponse);
+    }
+  }
   return endpoint;
 }
 
-function createEndpoint({ id, slug, method, statusCode, response, createdAt }) {
+function createEndpoint({ id, slug, method, statusCode, response, createdAt, reqBody, successResponse, failedResponse }) {
   const db = getDB();
   db.run(
-    'INSERT INTO endpoints (id, slug, method, statusCode, response, createdAt, hits) VALUES (?, ?, ?, ?, ?, ?, 0)',
-    [id, slug, method, statusCode, JSON.stringify(response), createdAt]
+    'INSERT INTO endpoints (id, slug, method, statusCode, response, reqBody, successResponse, failedResponse, createdAt, hits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
+    [id, slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, createdAt]
   );
   saveDB();
 }
 
-function updateEndpoint(id, { slug, method, statusCode, response }) {
+function updateEndpoint(id, { slug, method, statusCode, response, reqBody, successResponse, failedResponse }) {
   const db = getDB();
   db.run(
-    'UPDATE endpoints SET slug = ?, method = ?, statusCode = ?, response = ? WHERE id = ?',
-    [slug, method, statusCode, JSON.stringify(response), id]
+    'UPDATE endpoints SET slug = ?, method = ?, statusCode = ?, response = ?, reqBody = ?, successResponse = ?, failedResponse = ? WHERE id = ?',
+    [slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, id]
   );
   saveDB();
 }

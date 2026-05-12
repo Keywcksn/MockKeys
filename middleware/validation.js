@@ -1,7 +1,7 @@
 const SLUG_REGEX = /^[a-z0-9\-_\/\?\=\&]+$/i;
 
 function validateCreateEndpoint(req, res, next) {
-  const { slug, method, response } = req.body;
+  const { slug, method, response, reqBody, successResponse, failedResponse } = req.body;
 
   if (!slug || !method || !response) {
     return res.status(400).json({ error: 'slug, method, and response are required' });
@@ -16,14 +16,26 @@ function validateCreateEndpoint(req, res, next) {
   try {
     const parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
     req.parsedResponse = parsedResponse;
+
+    // Parse optional JSON fields
+    if (reqBody) {
+      req.body.reqBody = typeof reqBody === 'string' ? JSON.parse(reqBody) : reqBody;
+    }
+    if (successResponse) {
+      req.body.successResponse = typeof successResponse === 'string' ? JSON.parse(successResponse) : successResponse;
+    }
+    if (failedResponse) {
+      req.body.failedResponse = typeof failedResponse === 'string' ? JSON.parse(failedResponse) : failedResponse;
+    }
+
     next();
   } catch (e) {
-    return res.status(400).json({ error: 'Invalid JSON in response body' });
+    return res.status(400).json({ error: 'Invalid JSON in response body or request body fields' });
   }
 }
 
 function validateUpdateEndpoint(req, res, next) {
-  const { response } = req.body;
+  const { response, reqBody, successResponse, failedResponse } = req.body;
 
   if (response !== undefined) {
     try {
@@ -32,6 +44,21 @@ function validateUpdateEndpoint(req, res, next) {
     } catch (e) {
       return res.status(400).json({ error: 'Invalid JSON in response body' });
     }
+  }
+
+  // Parse optional JSON fields if provided
+  try {
+    if (reqBody !== undefined) {
+      req.body.reqBody = typeof reqBody === 'string' ? JSON.parse(reqBody) : reqBody;
+    }
+    if (successResponse !== undefined) {
+      req.body.successResponse = typeof successResponse === 'string' ? JSON.parse(successResponse) : successResponse;
+    }
+    if (failedResponse !== undefined) {
+      req.body.failedResponse = typeof failedResponse === 'string' ? JSON.parse(failedResponse) : failedResponse;
+    }
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON in request body fields' });
   }
 
   const { slug } = req.body;

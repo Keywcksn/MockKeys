@@ -358,6 +358,17 @@
       line-height: 1.6;
     }
 
+    /* Request body validation badge */
+    .req-body-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: rgba(96,165,250,0.15);
+      color: #60a5fa;
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 6px;
+    }
+
     .url-row {
       display: flex;
       align-items: center;
@@ -470,6 +481,32 @@
         <textarea id="responseBody" placeholder='{"message": "hello world", "status": "ok"}'></textarea>
       </div>
 
+      <!-- Request Body Validation -->
+      <div class="field">
+        <label>Expected Request Body (JSON) - Optional</label>
+        <textarea id="reqBody" style="min-height: 120px;" placeholder='{
+  "--header": {
+    "Authorization": "Bearer YOUR_TOKEN"
+  },
+  "organization_id": "",
+  "company_name": ""
+}'></textarea>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">--header: exact value match required<br>
+          body keys: must exist (value not checked)</div>
+      </div>
+
+      <div class="field">
+        <label>Success Response (JSON) - Optional</label>
+        <textarea id="successResponse" style="min-height: 120px;" placeholder='{"success": true, "message": "Valid request"}'></textarea>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Returned when request body matches (default: 200)</div>
+      </div>
+
+      <div class="field">
+        <label>Failed Response (JSON) - Optional</label>
+        <textarea id="failedResponse" style="min-height: 120px;" placeholder='{"success": false, "error": "Invalid request body"}'></textarea>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Returned when request body doesn't match (default: 400)</div>
+      </div>
+
       <div id="formError" class="error-msg" style="display:none"></div>
     </div>
 
@@ -562,6 +599,9 @@
     const method = document.getElementById('method').value;
     const statusCode = parseInt(document.getElementById('statusCode').value) || 200;
     const responseBody = document.getElementById('responseBody').value.trim();
+    const reqBody = document.getElementById('reqBody').value.trim();
+    const successResponse = document.getElementById('successResponse').value.trim();
+    const failedResponse = document.getElementById('failedResponse').value.trim();
 
     clearError();
 
@@ -570,9 +610,31 @@
 
     let parsed;
     try { parsed = JSON.parse(responseBody); }
-    catch (e) { return showError('Invalid JSON: ' + e.message); }
+    catch (e) { return showError('Invalid JSON in response: ' + e.message); }
+
+    // Parse optional JSON fields
+    let parsedReqBody = null;
+    if (reqBody) {
+      try { parsedReqBody = JSON.parse(reqBody); }
+      catch (e) { return showError('Invalid JSON in expected request body: ' + e.message); }
+    }
+
+    let parsedSuccessResponse = null;
+    if (successResponse) {
+      try { parsedSuccessResponse = JSON.parse(successResponse); }
+      catch (e) { return showError('Invalid JSON in success response: ' + e.message); }
+    }
+
+    let parsedFailedResponse = null;
+    if (failedResponse) {
+      try { parsedFailedResponse = JSON.parse(failedResponse); }
+      catch (e) { return showError('Invalid JSON in failed response: ' + e.message); }
+    }
 
     const payload = { slug, method, statusCode, response: parsed };
+    if (parsedReqBody) payload.reqBody = parsedReqBody;
+    if (parsedSuccessResponse) payload.successResponse = parsedSuccessResponse;
+    if (parsedFailedResponse) payload.failedResponse = parsedFailedResponse;
 
     try {
       let res;
@@ -619,6 +681,9 @@
     document.getElementById('method').value = ep.method;
     document.getElementById('statusCode').value = ep.statusCode;
     document.getElementById('responseBody').value = JSON.stringify(ep.response, null, 2);
+    document.getElementById('reqBody').value = ep.reqBody ? JSON.stringify(ep.reqBody, null, 2) : '';
+    document.getElementById('successResponse').value = ep.successResponse ? JSON.stringify(ep.successResponse, null, 2) : '';
+    document.getElementById('failedResponse').value = ep.failedResponse ? JSON.stringify(ep.failedResponse, null, 2) : '';
     document.getElementById('submitBtn').textContent = '✓ Save Changes';
     document.getElementById('cancelEditBtn').style.display = 'block';
     document.getElementById('formLabel').textContent = 'Edit Endpoint';
@@ -633,6 +698,9 @@
     document.getElementById('method').value = 'GET';
     document.getElementById('statusCode').value = '200';
     document.getElementById('responseBody').value = '';
+    document.getElementById('reqBody').value = '';
+    document.getElementById('successResponse').value = '';
+    document.getElementById('failedResponse').value = '';
     document.getElementById('submitBtn').textContent = '+ Create Endpoint';
     document.getElementById('cancelEditBtn').style.display = 'none';
     document.getElementById('formLabel').textContent = 'New Endpoint';
@@ -656,13 +724,14 @@
       const fullUrl = `${BASE}/mock/${ep.slug}`;
       const previewId = 'prev-' + ep.id;
       const isEditing = editingId === ep.id;
+      const hasReqBody = ep.reqBody !== null && ep.reqBody !== undefined;
 
       return `
         <div class="card ${isEditing ? 'editing' : ''}" id="card-${ep.id}">
           <div class="card-header">
             <div class="card-left">
               <span class="method-badge ${ep.method}">${ep.method}</span>
-              <span class="card-path"><span class="prefix">/mock/</span>${ep.slug}</span>
+              <span class="card-path"><span class="prefix">/mock/</span>${ep.slug}${hasReqBody ? '<span class="req-body-badge">body check</span>' : ''}</span>
             </div>
             <div class="card-actions">
               <button class="copy-btn" onclick="togglePreview('${previewId}', this)">JSON</button>

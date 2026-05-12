@@ -7,7 +7,7 @@ function getAllEndpoints(req, res) {
 }
 
 function createEndpoint(req, res) {
-  const { slug, method, statusCode } = req.body;
+  const { slug, method, statusCode, reqBody, successResponse, failedResponse } = req.body;
   const { parsedResponse } = req;
 
   const cleanSlug = slug.replace(/^\/+/, '');
@@ -29,7 +29,10 @@ function createEndpoint(req, res) {
     method: cleanMethod,
     statusCode: parsedStatusCode,
     response: parsedResponse,
-    createdAt: now
+    createdAt: now,
+    reqBody,
+    successResponse,
+    failedResponse
   });
 
   const entry = {
@@ -39,7 +42,10 @@ function createEndpoint(req, res) {
     statusCode: parsedStatusCode,
     response: parsedResponse,
     createdAt: now,
-    hits: 0
+    hits: 0,
+    reqBody,
+    successResponse,
+    failedResponse
   };
 
   res.status(201).json(entry);
@@ -47,7 +53,7 @@ function createEndpoint(req, res) {
 
 function updateEndpoint(req, res) {
   const { id } = req.params;
-  const { slug, method, statusCode } = req.body;
+  const { slug, method, statusCode, reqBody, successResponse, failedResponse } = req.body;
   const { parsedResponse } = req;
 
   const existing = endpointService.findEndpointById(id);
@@ -58,7 +64,10 @@ function updateEndpoint(req, res) {
   const cleanSlug = slug ? slug.replace(/^\/+/, '') : existing.slug;
   const cleanMethod = method ? method.toUpperCase() : existing.method;
   const parsedStatusCode = statusCode ? parseInt(statusCode) : existing.statusCode;
-  const response = parsedResponse || JSON.parse(existing.response);
+  const response = parsedResponse || existing.response;
+  const finalReqBody = reqBody !== undefined ? reqBody : existing.reqBody;
+  const finalSuccessResponse = successResponse !== undefined ? successResponse : existing.successResponse;
+  const finalFailedResponse = failedResponse !== undefined ? failedResponse : existing.failedResponse;
 
   if (slug || method) {
     if (endpointService.slugMethodExists(cleanSlug, cleanMethod, id)) {
@@ -72,7 +81,10 @@ function updateEndpoint(req, res) {
     slug: cleanSlug,
     method: cleanMethod,
     statusCode: parsedStatusCode,
-    response
+    response,
+    reqBody: finalReqBody,
+    successResponse: finalSuccessResponse,
+    failedResponse: finalFailedResponse
   });
 
   const entry = {
@@ -81,6 +93,9 @@ function updateEndpoint(req, res) {
     method: cleanMethod,
     statusCode: parsedStatusCode,
     response,
+    reqBody: finalReqBody,
+    successResponse: finalSuccessResponse,
+    failedResponse: finalFailedResponse,
     createdAt: existing.createdAt,
     hits: existing.hits
   };
@@ -117,7 +132,73 @@ function handleMock(req, res) {
   }
 
   endpointService.incrementHits(endpoint.id);
-  res.status(endpoint.statusCode).json(JSON.parse(endpoint.response));
+
+  // Check if request body validation is enabled
+  if (endpoint.reqBody) {
+    // Extract expected headers from --header key
+    const expectedHeaders = endpoint.reqBody['--header'];
+    const actualBody = { ...endpoint.reqBody };
+    delete actualBody['--header']; // Remove --header key for body comparison
+
+    // Validate headers first (exact value match)
+    if (expectedHeaders) {
+      const headersMatch = checkHeadersMatch(req.headers, expectedHeaders);
+      if (!headersMatch) {
+        // Headers don't match
+        if (endpoint.failedResponse) {
+          return res.status(400).json(endpoint.failedResponse);
+        }
+        return res.status(400).json(endpoint.response);
+      }
+    }
+
+    // Then validate body keys existence (presence check only, not value)
+    if (Object.keys(actualBody).length > 0) {
+      const bodyKeysExist = checkBodyKeysExist(req.body, actualBody);
+
+      if (bodyKeysExist && endpoint.successResponse) {
+        // Body keys exist and success response is set
+        return res.status(200).json(endpoint.successResponse);
+      } else if (!bodyKeysExist) {
+        // Body keys don't exist
+        if (endpoint.failedResponse) {
+          return res.status(400).json(endpoint.failedResponse);
+        }
+        return res.status(400).json(endpoint.response);
+      }
+    }
+
+    // Headers match (and no body to validate or body keys exist)
+    if (endpoint.successResponse) {
+      return res.status(200).json(endpoint.successResponse);
+    }
+    return res.status(endpoint.statusCode).json(endpoint.response);
+  }
+
+  // No request body validation, use default response
+  res.status(endpoint.statusCode).json(endpoint.response);
+}
+
+// Helper function to check if headers match (exact value)
+function checkHeadersMatch(reqHeaders, expectedHeaders) {
+  for (const [key, expectedValue] of Object.entries(expectedHeaders)) {
+    // Express headers are case-insensitive, convert to lowercase for comparison
+    const actualValue = reqHeaders[key.toLowerCase()] || reqHeaders[key];
+    if (actualValue !== expectedValue) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Helper function to check if body keys exist (presence check only)
+function checkBodyKeysExist(reqBody, expectedBody) {
+  for (const key of Object.keys(expectedBody)) {
+    if (reqBody[key] === undefined) {
+      return false;
+    }
+  }
+  return true;
 }
 
 module.exports = {
@@ -125,5 +206,7 @@ module.exports = {
   createEndpoint,
   updateEndpoint,
   deleteEndpoint,
-  handleMock
+  handleMock,
+  checkHeadersMatch,
+  checkBodyKeysExist
 };
