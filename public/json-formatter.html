@@ -325,6 +325,41 @@
 
   let lastValidJson = null;
 
+  // Preserve float numbers (e.g., 50000.0 stays as 50000.0, not 50000)
+  const FLOAT_PREFIX = '__MKFLOAT_';
+
+  function markFloats(jsonStr) {
+    let result = '';
+    let inString = false;
+    for (let i = 0; i < jsonStr.length; i++) {
+      const ch = jsonStr[i];
+      if (ch === '\\' && inString) {
+        result += ch + (jsonStr[i + 1] || '');
+        i++;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        result += ch;
+        continue;
+      }
+      if (!inString) {
+        const m = jsonStr.substring(i).match(/^(-?\d+\.\d*(?:[eE][+-]?\d+)?)/);
+        if (m) {
+          result += '"' + FLOAT_PREFIX + m[1] + '__"';
+          i += m[0].length - 1;
+          continue;
+        }
+      }
+      result += ch;
+    }
+    return result;
+  }
+
+  function unmarkFloats(str) {
+    return str.replace(/"__MKFLOAT_(.+?)__"/g, '$1');
+  }
+
   // Update input stats
   jsonInput.addEventListener('input', () => {
     inputStats.textContent = `${jsonInput.value.length} chars`;
@@ -367,11 +402,12 @@
     }
 
     try {
-      let parsed = JSON.parse(value);
+      const marked = markFloats(value);
+      let parsed = JSON.parse(marked);
       lastValidJson = parsed;
 
       const indent = indentSelect.value === 'tab' ? '\t' : parseInt(indentSelect.value);
-      const formatted = JSON.stringify(parsed, null, indent);
+      const formatted = unmarkFloats(JSON.stringify(parsed, null, indent));
 
       jsonOutput.innerHTML = syntaxHighlight(formatted);
       outputStatus.innerHTML = '<span class="value">Formatted successfully</span>';
@@ -396,9 +432,10 @@
     }
 
     try {
-      const parsed = JSON.parse(value);
+      const marked = markFloats(value);
+      const parsed = JSON.parse(marked);
       lastValidJson = parsed;
-      const minified = JSON.stringify(parsed);
+      const minified = unmarkFloats(JSON.stringify(parsed));
 
       jsonOutput.textContent = minified;
       outputStatus.innerHTML = '<span class="value">Minified successfully</span>';
@@ -422,7 +459,7 @@
     }
 
     const sorted = sortObjectKeys(lastValidJson);
-    jsonInput.value = JSON.stringify(sorted, null, 2);
+    jsonInput.value = unmarkFloats(JSON.stringify(sorted, null, 2));
     lastValidJson = sorted;
     formatJson();
     showToast('Keys sorted alphabetically');

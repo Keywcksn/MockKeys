@@ -1,7 +1,7 @@
 const SLUG_REGEX = /^[a-z0-9\-_\/\?\=\&]+$/i;
 
 function validateCreateEndpoint(req, res, next) {
-  const { slug, method, response, reqBody, successResponse, failedResponse } = req.body;
+  const { slug, method, response, reqBody, successResponse, failedResponse, matchValues } = req.body;
 
   if (!slug || !method || !response) {
     return res.status(400).json({ error: 'slug, method, and response are required' });
@@ -28,6 +28,8 @@ function validateCreateEndpoint(req, res, next) {
       req.body.failedResponse = typeof failedResponse === 'string' ? JSON.parse(failedResponse) : failedResponse;
     }
 
+    req.body.matchValues = matchValues === true || matchValues === 1 || matchValues === 'true';
+
     next();
   } catch (e) {
     return res.status(400).json({ error: 'Invalid JSON in response body or request body fields' });
@@ -35,7 +37,7 @@ function validateCreateEndpoint(req, res, next) {
 }
 
 function validateUpdateEndpoint(req, res, next) {
-  const { response, reqBody, successResponse, failedResponse } = req.body;
+  const { response, reqBody, successResponse, failedResponse, matchValues } = req.body;
 
   if (response !== undefined) {
     try {
@@ -59,6 +61,10 @@ function validateUpdateEndpoint(req, res, next) {
     }
   } catch (e) {
     return res.status(400).json({ error: 'Invalid JSON in request body fields' });
+  }
+
+  if (matchValues !== undefined) {
+    req.body.matchValues = matchValues === true || matchValues === 1 || matchValues === 'true';
   }
 
   const { slug } = req.body;

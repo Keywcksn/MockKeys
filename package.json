@@ -1,5 +1,5 @@
 {
-  "name": "mockdrop",
+  "name": "mockkeys",
   "version": "1.0.0",
   "description": "A lightweight mock API server",
   "main": "server.js",

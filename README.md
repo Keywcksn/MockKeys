@@ -108,3 +108,8 @@ The project follows a layered architecture for maintainability:
 - **controllers/** - HTTP request/response handling
 - **middleware/** - Validation and error handling
 - **routes/** - Route definitions
+
+## Commands:
+```
+npm run migrate - To run migrations
+```

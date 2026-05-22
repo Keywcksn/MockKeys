@@ -13,7 +13,8 @@ const TABLE_SCHEMA = `
     statusCode INTEGER DEFAULT 200,
     response TEXT NOT NULL,
     createdAt TEXT NOT NULL,
-    hits INTEGER DEFAULT 0
+    hits INTEGER DEFAULT 0,
+    matchValues INTEGER DEFAULT 0
   )
 `;
 

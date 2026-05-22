@@ -369,6 +369,34 @@
       margin-left: 6px;
     }
 
+    .match-values-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: rgba(251,191,36,0.15);
+      color: #fbbf24;
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 4px;
+    }
+
+    .match-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .match-toggle input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .match-toggle label {
+      cursor: pointer;
+      user-select: none;
+    }
+
     .url-row {
       display: flex;
       align-items: center;
@@ -491,8 +519,12 @@
   "organization_id": "",
   "company_name": ""
 }'></textarea>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">--header: exact value match required<br>
-          body keys: must exist (value not checked)</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">--header: exact value match required</div>
+        <div class="match-toggle" id="matchToggleContainer" style="display: none;">
+          <input type="checkbox" id="matchValues" />
+          <label for="matchValues">Match keys and values</label>
+        </div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;" id="matchModeHint">body keys: must exist (value not checked)</div>
       </div>
 
       <div class="field">
@@ -578,6 +610,27 @@
   }
   updatePreview();
 
+  // Match mode toggle visibility
+  document.getElementById('reqBody').addEventListener('input', updateMatchToggleVisibility);
+  document.getElementById('matchValues').addEventListener('change', updateMatchHint);
+
+  function updateMatchToggleVisibility() {
+    const reqBody = document.getElementById('reqBody').value.trim();
+    const container = document.getElementById('matchToggleContainer');
+    container.style.display = reqBody ? 'flex' : 'none';
+    if (!reqBody) {
+      document.getElementById('matchValues').checked = false;
+      updateMatchHint();
+    }
+  }
+
+  function updateMatchHint() {
+    const checked = document.getElementById('matchValues').checked;
+    document.getElementById('matchModeHint').textContent = checked
+      ? 'body: keys and values must match exactly'
+      : 'body keys: must exist (value not checked)';
+  }
+
   // ── API ──────────────────────────────────────────────────────────────────────
   async function fetchEndpoints() {
     const res = await fetch('/api/endpoints', {
@@ -635,6 +688,7 @@
     if (parsedReqBody) payload.reqBody = parsedReqBody;
     if (parsedSuccessResponse) payload.successResponse = parsedSuccessResponse;
     if (parsedFailedResponse) payload.failedResponse = parsedFailedResponse;
+    payload.matchValues = document.getElementById('matchValues').checked;
 
     try {
       let res;
@@ -684,6 +738,9 @@
     document.getElementById('reqBody').value = ep.reqBody ? JSON.stringify(ep.reqBody, null, 2) : '';
     document.getElementById('successResponse').value = ep.successResponse ? JSON.stringify(ep.successResponse, null, 2) : '';
     document.getElementById('failedResponse').value = ep.failedResponse ? JSON.stringify(ep.failedResponse, null, 2) : '';
+    document.getElementById('matchValues').checked = ep.matchValues ? true : false;
+    updateMatchToggleVisibility();
+    updateMatchHint();
     document.getElementById('submitBtn').textContent = '✓ Save Changes';
     document.getElementById('cancelEditBtn').style.display = 'block';
     document.getElementById('formLabel').textContent = 'Edit Endpoint';
@@ -701,6 +758,9 @@
     document.getElementById('reqBody').value = '';
     document.getElementById('successResponse').value = '';
     document.getElementById('failedResponse').value = '';
+    document.getElementById('matchValues').checked = false;
+    document.getElementById('matchToggleContainer').style.display = 'none';
+    document.getElementById('matchModeHint').textContent = 'body keys: must exist (value not checked)';
     document.getElementById('submitBtn').textContent = '+ Create Endpoint';
     document.getElementById('cancelEditBtn').style.display = 'none';
     document.getElementById('formLabel').textContent = 'New Endpoint';
@@ -731,7 +791,7 @@
           <div class="card-header">
             <div class="card-left">
               <span class="method-badge ${ep.method}">${ep.method}</span>
-              <span class="card-path"><span class="prefix">/mock/</span>${ep.slug}${hasReqBody ? '<span class="req-body-badge">body check</span>' : ''}</span>
+              <span class="card-path"><span class="prefix">/mock/</span>${ep.slug}${hasReqBody ? `<span class="req-body-badge">body check${ep.matchValues ? ' <span class="match-values-badge">(keys+values)</span>' : ''}</span>` : ''}</span>
             </div>
             <div class="card-actions">
               <button class="copy-btn" onclick="togglePreview('${previewId}', this)">JSON</button>

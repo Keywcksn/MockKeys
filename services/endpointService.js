@@ -16,6 +16,7 @@ function listEndpoints() {
     if (row.failedResponse) {
       row.failedResponse = JSON.parse(row.failedResponse);
     }
+    row.matchValues = !!row.matchValues;
     rows.push(row);
   }
   stmt.free();
@@ -69,6 +70,7 @@ function findEndpointBySlugAndMethod(slug, method) {
     if (endpoint.failedResponse) {
       endpoint.failedResponse = JSON.parse(endpoint.failedResponse);
     }
+    endpoint.matchValues = !!endpoint.matchValues;
   }
 
   return endpoint;
@@ -90,24 +92,25 @@ function findEndpointById(id) {
     if (endpoint.failedResponse) {
       endpoint.failedResponse = JSON.parse(endpoint.failedResponse);
     }
+    endpoint.matchValues = !!endpoint.matchValues;
   }
   return endpoint;
 }
 
-function createEndpoint({ id, slug, method, statusCode, response, createdAt, reqBody, successResponse, failedResponse }) {
+function createEndpoint({ id, slug, method, statusCode, response, createdAt, reqBody, successResponse, failedResponse, matchValues }) {
   const db = getDB();
   db.run(
-    'INSERT INTO endpoints (id, slug, method, statusCode, response, reqBody, successResponse, failedResponse, createdAt, hits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
-    [id, slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, createdAt]
+    'INSERT INTO endpoints (id, slug, method, statusCode, response, reqBody, successResponse, failedResponse, matchValues, createdAt, hits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
+    [id, slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, matchValues ? 1 : 0, createdAt]
   );
   saveDB();
 }
 
-function updateEndpoint(id, { slug, method, statusCode, response, reqBody, successResponse, failedResponse }) {
+function updateEndpoint(id, { slug, method, statusCode, response, reqBody, successResponse, failedResponse, matchValues }) {
   const db = getDB();
   db.run(
-    'UPDATE endpoints SET slug = ?, method = ?, statusCode = ?, response = ?, reqBody = ?, successResponse = ?, failedResponse = ? WHERE id = ?',
-    [slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, id]
+    'UPDATE endpoints SET slug = ?, method = ?, statusCode = ?, response = ?, reqBody = ?, successResponse = ?, failedResponse = ?, matchValues = ? WHERE id = ?',
+    [slug, method, statusCode, JSON.stringify(response), reqBody ? JSON.stringify(reqBody) : null, successResponse ? JSON.stringify(successResponse) : null, failedResponse ? JSON.stringify(failedResponse) : null, matchValues ? 1 : 0, id]
   );
   saveDB();
 }

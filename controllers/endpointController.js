@@ -7,7 +7,7 @@ function getAllEndpoints(req, res) {
 }
 
 function createEndpoint(req, res) {
-  const { slug, method, statusCode, reqBody, successResponse, failedResponse } = req.body;
+  const { slug, method, statusCode, reqBody, successResponse, failedResponse, matchValues } = req.body;
   const { parsedResponse } = req;
 
   const cleanSlug = slug.replace(/^\/+/, '');
@@ -32,7 +32,8 @@ function createEndpoint(req, res) {
     createdAt: now,
     reqBody,
     successResponse,
-    failedResponse
+    failedResponse,
+    matchValues
   });
 
   const entry = {
@@ -45,7 +46,8 @@ function createEndpoint(req, res) {
     hits: 0,
     reqBody,
     successResponse,
-    failedResponse
+    failedResponse,
+    matchValues: matchValues || false
   };
 
   res.status(201).json(entry);
@@ -53,7 +55,7 @@ function createEndpoint(req, res) {
 
 function updateEndpoint(req, res) {
   const { id } = req.params;
-  const { slug, method, statusCode, reqBody, successResponse, failedResponse } = req.body;
+  const { slug, method, statusCode, reqBody, successResponse, failedResponse, matchValues } = req.body;
   const { parsedResponse } = req;
 
   const existing = endpointService.findEndpointById(id);
@@ -68,6 +70,7 @@ function updateEndpoint(req, res) {
   const finalReqBody = reqBody !== undefined ? reqBody : existing.reqBody;
   const finalSuccessResponse = successResponse !== undefined ? successResponse : existing.successResponse;
   const finalFailedResponse = failedResponse !== undefined ? failedResponse : existing.failedResponse;
+  const finalMatchValues = matchValues !== undefined ? matchValues : existing.matchValues;
 
   if (slug || method) {
     if (endpointService.slugMethodExists(cleanSlug, cleanMethod, id)) {
@@ -84,7 +87,8 @@ function updateEndpoint(req, res) {
     response,
     reqBody: finalReqBody,
     successResponse: finalSuccessResponse,
-    failedResponse: finalFailedResponse
+    failedResponse: finalFailedResponse,
+    matchValues: finalMatchValues
   });
 
   const entry = {
@@ -96,6 +100,7 @@ function updateEndpoint(req, res) {
     reqBody: finalReqBody,
     successResponse: finalSuccessResponse,
     failedResponse: finalFailedResponse,
+    matchValues: finalMatchValues,
     createdAt: existing.createdAt,
     hits: existing.hits
   };
@@ -152,15 +157,15 @@ function handleMock(req, res) {
       }
     }
 
-    // Then validate body keys existence (presence check only, not value)
+    // Then validate body keys (presence check or full match depending on matchValues)
     if (Object.keys(actualBody).length > 0) {
-      const bodyKeysExist = checkBodyKeysExist(req.body, actualBody);
+      const bodyMatches = endpoint.matchValues
+        ? checkBodyKeysAndValuesMatch(req.body, actualBody)
+        : checkBodyKeysExist(req.body, actualBody);
 
-      if (bodyKeysExist && endpoint.successResponse) {
-        // Body keys exist and success response is set
+      if (bodyMatches && endpoint.successResponse) {
         return res.status(200).json(endpoint.successResponse);
-      } else if (!bodyKeysExist) {
-        // Body keys don't exist
+      } else if (!bodyMatches) {
         if (endpoint.failedResponse) {
           return res.status(400).json(endpoint.failedResponse);
         }
@@ -195,6 +200,19 @@ function checkHeadersMatch(reqHeaders, expectedHeaders) {
 function checkBodyKeysExist(reqBody, expectedBody) {
   for (const key of Object.keys(expectedBody)) {
     if (reqBody[key] === undefined) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Helper function to check if body keys and values match exactly
+function checkBodyKeysAndValuesMatch(reqBody, expectedBody) {
+  for (const [key, expectedValue] of Object.entries(expectedBody)) {
+    if (reqBody[key] === undefined) {
+      return false;
+    }
+    if (reqBody[key] !== expectedValue) {
       return false;
     }
   }
