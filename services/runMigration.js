@@ -25,6 +25,10 @@ async function runMigration() {
     const hasMatchValues = columns.includes('matchValues'); 
 
     if (hasReqBody && hasSuccessResponse && hasFailedResponse && hasMatchValues) {
+      console.log('reqBody exists');
+      console.log('successResponse exists');
+      console.log('failedResponse exists');
+      console.log('matchValues exists');
       console.log('Migration already applied. Skipping.');
       db.close();
       return;
