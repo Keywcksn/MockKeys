@@ -22,14 +22,15 @@ async function runMigration() {
     const hasReqBody = columns.includes('reqBody');
     const hasSuccessResponse = columns.includes('successResponse');
     const hasFailedResponse = columns.includes('failedResponse');
+    const hasMatchValues = columns.includes('matchValues'); 
 
-    if (hasReqBody && hasSuccessResponse && hasFailedResponse) {
+    if (hasReqBody && hasSuccessResponse && hasFailedResponse && hasMatchValues) {
       console.log('Migration already applied. Skipping.');
       db.close();
       return;
     }
 
-    console.log('Adding reqBody, successResponse, and failedResponse columns...');
+    console.log('Adding reqBody, successResponse, failedResponse, and matchValues columns...');
 
     db.run("BEGIN");
 
@@ -46,6 +47,11 @@ async function runMigration() {
     if (!hasFailedResponse) {
       db.run("ALTER TABLE endpoints ADD COLUMN failedResponse TEXT");
       console.log('  + failedResponse');
+    }
+
+    if (!hasMatchValues) {
+      db.run("ALTER TABLE endpoints ADD COLUMN matchValues INTEGER DEFAULT 0");
+      console.log('  + matchValues');
     }
 
     db.run("COMMIT");
